@@ -1,10 +1,11 @@
+import numpy as np
+from numpy import cos, sin
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from matplotlib.gridspec import GridSpec
-import numpy as np
-from numpy import cos, sin
-
 import matplotlib.animation as animation
+
+#----------------------- Parameters --------------------------
 
 # Physical constants
 L = 0.3 # Pendulum length [m]
@@ -17,7 +18,6 @@ n = 0.1 # Buffer [m]
 
 t_stop = 20.0 # Total simulation duration [s]
 num_steps = int(t_stop / dt)
-
 t = np.arange(0, num_steps + 1) * dt
 
 # PID
@@ -35,17 +35,18 @@ a = 0
 energy = 0
 gpe = 0
 mode = "reset"
-set = False
 
 # Target position
 target_theta = np.deg2rad(180)
 target_x = 0
 target_E = G * (L/2)
 
-#----------------------------------------------------------------------------------------
+states = np.empty((num_steps, 5)) # 5 columns: x, v, theta, omega, a
+mode_history = np.empty(num_steps, dtype=object)
+settled_history = np.zeros(num_steps, dtype=bool)
+energy_history = np.empty(num_steps)
 
-
-#--------------------------------------------------------------------------------------
+#----------------------- Functions --------------------------
 
 def update_mode(mode, x, theta, omega, energy):
     if mode == "reset":
@@ -66,14 +67,98 @@ def update_mode(mode, x, theta, omega, energy):
 def wrap_angle(angle):
     return (angle + np.pi) % (2 * np.pi) - np.pi
 
-#---------------------------------------------------------------------------------------
+def reset(x, v, theta, omega):
+    a = 2*(-x) - 2*v
+    return a
 
-# Columns: x, v, theta, omega, a
-states = np.empty((num_steps, 5))
+def swingup(x, v, theta, omega, energy):
+    if abs(theta) <= 1e-3 and abs(omega) <= 1e-3:
+        a = 0.01
+    else:
+        energy_error = G * (L/2) - energy;
+        alpha_adjust = 2.5 * max(energy_error, 0.1*G*L) * omega * cos(theta)
+        a_swing = -(2*L) / (3*cos(theta)) * alpha_adjust
+        a_centre = -5*x - 0.5*v
+        a = np.clip(a_swing + a_centre, -max_accel, max_accel)
+    return a
 
-mode_history = np.empty(num_steps, dtype=object)
-settled_history = np.zeros(num_steps, dtype=bool)
-energy_history = np.empty(num_steps)
+def balance(x, v, theta, omega, target_x, target_theta):
+    x_error = target_x - x
+    dtheta = Kp_x*(x_error) + Kd_x*(-v)
+    new_target_theta = wrap_angle(target_theta + dtheta)
+    theta_error = wrap_angle(new_target_theta - theta)
+    alpha_adjust = Kp_theta*(theta_error) + Kd_theta*(-omega)
+
+    # Cart acceleration based on required control angular acceleration
+    a = np.clip(-(2*L*alpha_adjust + 3*G*sin(theta))/(3*cos(theta)), -max_accel, max_accel)
+    return a
+
+def update_physics(x, v, a, theta, omega):
+    v = v + a * dt
+    x = x + v * dt
+    print(f"t: {t[i]:.1f}, mode: {mode}, x: {x:.2f}, v: {v:.2f}, a: {a:.2f}")
+
+    if x <= -m/2 or x >= m/2:
+        x = np.clip(x, -m/2, m/2)
+        a = -v / dt
+        v = 0
+
+    alpha = -3/(2*L)*(a*cos(theta) + G*sin(theta)) - B*omega
+    omega = omega + alpha * dt
+    theta = theta + omega * dt
+    theta = wrap_angle(theta)
+
+    return x, v, a, theta, omega
+
+def init_anim():
+    cart.set_xy(([], []))
+    rod.set_data([], [])
+
+    theta_line.set_data([], [])
+    x_line.set_data([], [])
+    accel_line.set_data([], [])
+
+    status_text.set_text("")
+
+    return (cart, rod, status_text, theta_line, x_line, accel_line)
+
+def animate(i):
+    x = x_history[i]
+    theta = theta_history[i]
+
+    cart.set_xy((x - 0.04, -0.02))
+
+    rod.set_data([x, x + L * sin(theta)], [0, -L * cos(theta)])
+
+    # Update status text.
+    status_text.set_text(
+        f"Time: {t[i]:.1f} s\n"
+        f"Mode: {mode_history[i]}\n"
+        f"Cart position: {x:.3f} m\n"
+        f"Angle: {np.rad2deg(theta):.1f}°\n"
+        f"Settled: {settled_history[i]}"
+    )
+
+    # Update graph histories.
+    # i+1 includes the current frame.
+    theta_line.set_data(
+        t[:i + 1],
+        theta_error_history_deg[:i + 1]
+    )
+
+    x_line.set_data(
+        t[:i + 1],
+        x_history[:i + 1]
+    )
+
+    accel_line.set_data(
+        t[:i + 1],
+        a_history[:i + 1]
+    )
+
+    return (cart, rod, status_text, theta_line, x_line, accel_line)
+
+#----------------------- Main code --------------------------
 
 print("Starting simulation...")
 
@@ -86,44 +171,13 @@ for i in range(num_steps):
     mode = update_mode(mode, x, theta, omega, energy)
 
     if mode == "reset":
-        # Reset the pendulum to centre
-        a = 2*(-x) - 2*v
-        print(a)
-
+        a = reset(x, v, theta, omega)
     elif mode == "swingup":
-        set = True
-        if abs(theta) <= 1e-3 and abs(omega) <= 1e-3:
-            a = 0.01
-        else:
-            energy_error = target_E - energy;
-            alpha_adjust = 2.5 * max(energy_error, 0.1*G*L) * omega * cos(theta)
-            a_swing = -(2*L) / (3*cos(theta)) * alpha_adjust
-            a_centre = -5*x - 0.5*v
-            a = np.clip(a_swing + a_centre, -max_accel, max_accel)
-
+        a = swingup(x, v, theta, omega, energy)
     elif mode == "balance":
-        x_error = target_x - x
-        dtheta = Kp_x*(x_error) + Kd_x*(-v)
-        new_target_theta = wrap_angle(target_theta + dtheta)
-        theta_error = wrap_angle(new_target_theta - theta)
-        alpha_adjust = Kp_theta*(theta_error) + Kd_theta*(-omega)
+        a = balance(x, v, theta, omega, target_x, target_theta)
 
-        # Cart acceleration based on required control angular acceleration
-        a = np.clip(-(2*L)/(3*cos(theta)) * (alpha_adjust - G*sin(theta)), -max_accel, max_accel)
-
-    v = v + a * dt
-    x = x + v * dt
-    print(f"mode: {mode}, x: {x:.2f}, v: {v:.2f}, a: {a:.2f}")
-
-    if x <= -m/2 or x >= m/2:
-        x = np.clip(x, -m/2, m/2)
-        a = -v / dt
-        v = 0
-
-    alpha = -3/(2*L)*(a*cos(theta) + G*sin(theta)) - B*omega
-    omega = omega + alpha * dt
-    theta = theta + omega * dt
-    theta = wrap_angle(theta)
+    x, v, a, theta, omega = update_physics(x, v, a, theta, omega)
 
     states[i] = [x, v, theta, omega, a]
     mode_history[i] = mode
@@ -136,15 +190,10 @@ omega_history = states[:, 3]
 a_history = states[:, 4]
 
 theta_history_deg = np.rad2deg(theta_history)
-
 theta_error_history = wrap_angle(np.pi - theta_history)
 theta_error_history_deg = np.rad2deg(theta_error_history)
 
 print("Simulation complete.")
-# print(x_history)
-# print(v_history)
-
-# ------------------------  Animation setup --------------------------------
 
 print("Starting animation...")
 
@@ -264,68 +313,12 @@ accel_line, = ax_accel.plot(
 
 ax_accel.legend(loc="upper right")
 
-def init():
-    cart.set_xy(([], []))
-    rod.set_data([], [])
-
-    theta_line.set_data([], [])
-    x_line.set_data([], [])
-    accel_line.set_data([], [])
-
-    status_text.set_text("")
-
-    return (cart, rod, status_text, theta_line, x_line, accel_line)
-
-def animate(i):
-    x = x_history[i]
-    theta = theta_history[i]
-
-    cart.set_xy((x - 0.04, -0.02))
-
-    rod.set_data([x, x + L * sin(theta)], [0, -L * cos(theta)])
-
-    # Update status text.
-    status_text.set_text(
-        f"Time: {t[i]:.1f} s\n"
-        f"Mode: {mode_history[i]}\n"
-        f"Cart position: {x:.3f} m\n"
-        f"Angle: {np.rad2deg(theta):.1f}°\n"
-        f"Settled: {settled_history[i]}"
-    )
-
-    # Update graph histories.
-    # i+1 includes the current frame.
-    theta_line.set_data(
-        t[:i + 1],
-        theta_error_history_deg[:i + 1]
-    )
-
-    x_line.set_data(
-        t[:i + 1],
-        x_history[:i + 1]
-    )
-
-    accel_line.set_data(
-        t[:i + 1],
-        a_history[:i + 1]
-    )
-
-    return (
-        cart, rod, status_text,
-        theta_line, x_line, accel_line
-    )
-
-    
 ani = animation.FuncAnimation(
     fig, 
     animate, 
     frames=len(t)-1, 
-    init_func=init,
+    init_func=init_anim,
     interval=dt*1000, 
     blit=True
 )
-
 plt.show()
-
-
-
