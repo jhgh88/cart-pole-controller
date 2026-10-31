@@ -10,8 +10,8 @@ import matplotlib.animation as animation
 # Physical constants
 L = 0.3 # Pendulum length [m]
 G = 9.81 # Gravity [m/s^2]
-dt = 0.1 # Timestep [s]
-B = 0.7 # Damping coefficient
+dt = 0.01 # Timestep [s]
+B = 0.1 # Damping coefficient
 max_accel = 10 # Maximum acceleration [m/s^2]
 m = 1.0 # Length of track [m]
 n = 0.1 # Buffer [m]
@@ -27,7 +27,7 @@ Kp_x = -0.35
 Kd_x = -0.18
 
 # Initial conditions
-theta = np.deg2rad(20)
+theta = np.deg2rad(10)
 omega = 0
 x = np.random.rand()*0.6 - 0.3
 v = 0
@@ -41,7 +41,7 @@ target_theta = np.deg2rad(180)
 target_x = 0
 target_E = G * (L/2)
 
-states = np.empty((num_steps, 5)) # 5 columns: x, v, theta, omega, a
+states = np.empty((num_steps, 6)) # 6 columns: x, v, theta, omega, a
 mode_history = np.empty(num_steps, dtype=object)
 settled_history = np.zeros(num_steps, dtype=bool)
 energy_history = np.empty(num_steps)
@@ -50,7 +50,7 @@ energy_history = np.empty(num_steps)
 
 def update_mode(mode, x, theta, omega, energy):
     if mode == "reset":
-        if abs(x) < 0.02 and abs(energy + G * (L/2)) < 0.0005:
+        if abs(x) < 0.01 and abs(energy + G * (L/2)) < 0.0005:
             mode = "swingup"
         else:
             mode = "reset"
@@ -67,8 +67,12 @@ def update_mode(mode, x, theta, omega, energy):
 def wrap_angle(angle):
     return (angle + np.pi) % (2 * np.pi) - np.pi
 
-def reset(x, v, theta, omega):
-    a = 2*(-x) - 2*v
+def reset(x, v, theta, omega, energy):
+    a_centre = 5*(-x) - 3*v
+    energy_error = -G*L/2 - energy
+    a_calmdown = -70 * (energy_error) * omega * cos(theta)
+
+    a = a_centre + a_calmdown
     return a
 
 def swingup(x, v, theta, omega, energy):
@@ -76,8 +80,7 @@ def swingup(x, v, theta, omega, energy):
         a = 0.01
     else:
         energy_error = G * (L/2) - energy;
-        alpha_adjust = 2.5 * max(energy_error, 0.1*G*L) * omega * cos(theta)
-        a_swing = -(2*L) / (3*cos(theta)) * alpha_adjust
+        a_swing = -0.75 * energy_error * omega * cos(theta)
         a_centre = -5*x - 0.5*v
         a = np.clip(a_swing + a_centre, -max_accel, max_accel)
     return a
@@ -96,7 +99,6 @@ def balance(x, v, theta, omega, target_x, target_theta):
 def update_physics(x, v, a, theta, omega):
     v = v + a * dt
     x = x + v * dt
-    print(f"t: {t[i]:.1f}, mode: {mode}, x: {x:.2f}, v: {v:.2f}, a: {a:.2f}")
 
     if x <= -m/2 or x >= m/2:
         x = np.clip(x, -m/2, m/2)
@@ -117,10 +119,11 @@ def init_anim():
     theta_line.set_data([], [])
     x_line.set_data([], [])
     accel_line.set_data([], [])
+    energy_line.set_data([], [])
 
     status_text.set_text("")
 
-    return (cart, rod, status_text, theta_line, x_line, accel_line)
+    return (cart, rod, status_text, theta_line, x_line, accel_line, energy_line)
 
 def animate(i):
     x = x_history[i]
@@ -156,7 +159,12 @@ def animate(i):
         a_history[:i + 1]
     )
 
-    return (cart, rod, status_text, theta_line, x_line, accel_line)
+    energy_line.set_data(
+        t[:i + 1],
+        energy_history[:i + 1]
+    )
+
+    return (cart, rod, status_text, theta_line, x_line, accel_line, energy_line)
 
 #----------------------- Main code --------------------------
 
@@ -171,15 +179,16 @@ for i in range(num_steps):
     mode = update_mode(mode, x, theta, omega, energy)
 
     if mode == "reset":
-        a = reset(x, v, theta, omega)
+        a = reset(x, v, theta, omega, energy)
     elif mode == "swingup":
         a = swingup(x, v, theta, omega, energy)
     elif mode == "balance":
         a = balance(x, v, theta, omega, target_x, target_theta)
 
     x, v, a, theta, omega = update_physics(x, v, a, theta, omega)
+    print(f"t: {t[i]:.1f}, mode: {mode}, x: {x:.2f}, v: {v:.2f}, a: {a:.2f}, energy: {energy}")
 
-    states[i] = [x, v, theta, omega, a]
+    states[i] = [x, v, theta, omega, a, energy]
     mode_history[i] = mode
     energy_history[i] = energy
 
@@ -188,6 +197,7 @@ v_history = states[:, 1]
 theta_history = states[:, 2]
 omega_history = states[:, 3]
 a_history = states[:, 4]
+energy_history = states[:, 5]
 
 theta_history_deg = np.rad2deg(theta_history)
 theta_error_history = wrap_angle(np.pi - theta_history)
@@ -199,10 +209,10 @@ print("Starting animation...")
 
 fig = plt.figure(figsize=(12, 7))
 gs = GridSpec(
-    3, 2,
+    4, 2,
     figure=fig,
     width_ratios=[1, 1],
-    height_ratios=[1, 1, 1],
+    height_ratios=[1, 1, 1, 1],
     hspace=0.6,
     wspace=0.3
 )
@@ -210,6 +220,7 @@ ax_anim = fig.add_subplot(gs[:, 0])
 ax_theta = fig.add_subplot(gs[0, 1])
 ax_x = fig.add_subplot(gs[1, 1])
 ax_accel = fig.add_subplot(gs[2, 1])
+ax_energy = fig.add_subplot(gs[3, 1])
 
 fig.suptitle("Cart-pole Simulation", fontsize=16, fontweight="bold")
 
@@ -312,6 +323,30 @@ accel_line, = ax_accel.plot(
 )
 
 ax_accel.legend(loc="upper right")
+
+# Setup energy plot
+ax_energy.set_title("Pendulum Energy (J)")
+ax_energy.set_xlabel("Time (s)")
+ax_energy.set_ylabel("Energy (J)")
+ax_energy.set_xlim(0, t_stop)
+ax_energy.set_ylim(-2, 2)
+ax_energy.grid(True)
+
+energy_line, = ax_energy.plot(
+    [], [],
+    linewidth=2,
+    label="Energy"
+)
+
+ax_energy.axhline(
+    G*L/2, 
+    linestyle="--",
+    color="black",
+    alpha=0.6, # transparency
+    label="Upright target"
+)
+
+ax_energy.legend(loc="upper right")
 
 ani = animation.FuncAnimation(
     fig, 
