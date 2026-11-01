@@ -31,7 +31,7 @@ Kd_x = -0.18
 # Initial conditions
 theta = np.deg2rad(20)
 omega = 0
-x = np.random.rand()*0.6 - 0.3
+x = np.random.rand()*0.4 - 0.2
 v = 0
 a = 0
 energy = 0
@@ -61,7 +61,7 @@ def update_mode(mode, x, theta, omega, energy):
 
     elif mode == "swingup":
         theta_error_from_top = np.pi - abs(theta)
-        if theta_error_from_top < np.deg2rad(20):
+        if theta_error_from_top < np.deg2rad(25) and abs(x) < 0.4:
             mode = "balance"
         else:
             mode = "swingup"
@@ -197,7 +197,6 @@ for i in range(num_steps):
         a = balance(x, v, theta, omega, target_x, target_theta)
 
     x, v, a, theta, omega = update_physics(x, v, a, theta, omega)
-    print(f"t: {t[i]:.1f}, mode: {mode}, x: {x:.2f}, v: {v:.2f}, a: {a:.2f}, energy: {energy}")
 
     states[i] = [x, v, theta, omega, a, energy]
     mode_history[i] = mode
