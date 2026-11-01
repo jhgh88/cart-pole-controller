@@ -21,15 +21,15 @@ num_steps = int(t_stop / dt)
 t = np.arange(0, num_steps + 1) * dt
 
 # PID
-Kp_theta = 140
-Kd_theta = 15
+Kp_theta = 150
+Kd_theta = 20
 Kp_x = -0.35
 Kd_x = -0.18
 
 # Initial conditions
-theta = np.deg2rad(10)
+theta = np.deg2rad(20)
 omega = 0
-x = np.random.rand()*0.6 - 0.3
+x = np.random.rand()*0.1 - 0.05
 v = 0
 a = 0
 energy = 0
@@ -45,6 +45,8 @@ states = np.empty((num_steps, 6)) # 6 columns: x, v, theta, omega, a
 mode_history = np.empty(num_steps, dtype=object)
 settled_history = np.zeros(num_steps, dtype=bool)
 energy_history = np.empty(num_steps)
+settle_condition = int(1 / dt) # 1 second of stability required to be considered settled
+settle_time = 0
 
 #----------------------- Functions --------------------------
 
@@ -121,9 +123,10 @@ def init_anim():
     accel_line.set_data([], [])
     energy_line.set_data([], [])
 
+    info_text.set_text("")
     status_text.set_text("")
 
-    return (cart, rod, status_text, theta_line, x_line, accel_line, energy_line)
+    return (cart, rod, info_text, status_text, theta_line, x_line, accel_line, energy_line)
 
 def animate(i):
     x = x_history[i]
@@ -134,13 +137,17 @@ def animate(i):
     rod.set_data([x, x + L * sin(theta)], [0, -L * cos(theta)])
 
     # Update status text.
-    status_text.set_text(
+    info_text.set_text(
         f"Time: {t[i]:.1f} s\n"
         f"Mode: {mode_history[i]}\n"
         f"Cart position: {x:.3f} m\n"
         f"Angle: {np.rad2deg(theta):.1f}°\n"
+    )
+    status_text.set_text(
         f"Settled: {settled_history[i]}"
     )
+    if settled_history[i] == True:
+        status_text.set_color("green")
 
     # Update graph histories.
     # i+1 includes the current frame.
@@ -164,7 +171,7 @@ def animate(i):
         energy_history[:i + 1]
     )
 
-    return (cart, rod, status_text, theta_line, x_line, accel_line, energy_line)
+    return (cart, rod, info_text, status_text, theta_line, x_line, accel_line, energy_line)
 
 #----------------------- Main code --------------------------
 
@@ -203,7 +210,16 @@ theta_history_deg = np.rad2deg(theta_history)
 theta_error_history = wrap_angle(np.pi - theta_history)
 theta_error_history_deg = np.rad2deg(theta_error_history)
 
+for i in range(settle_condition, num_steps):
+    if (abs(x_history[i-settle_condition:i]) < 0.03).all() and (abs(theta_error_history_deg[i-settle_condition:i]) < 3).all():
+        settled_history[i:] = True
+        settle_time = t[i]
+        break        
+    else:
+        settled_history[i] = False
+
 print("Simulation complete.")
+print(f"Settling time: {settle_time:.2f} s")
 
 print("Starting animation...")
 
@@ -253,10 +269,18 @@ ax_anim.add_patch(cart)
 
 rod, = ax_anim.plot([], [], 'o-', lw=2, color="blue")
 
-status_text = ax_anim.text(
+info_text = ax_anim.text(
     0.03, 0.97, "",
     transform=ax_anim.transAxes,
     verticalalignment="top"
+)
+status_text = ax_anim.text(
+    0.5, 0.97, "",
+    transform=ax_anim.transAxes,
+    verticalalignment="top",
+    horizontalalignment="center",
+    fontweight="bold",
+    fontsize="large"
 )
 
 # Setup angle error plot
@@ -308,7 +332,6 @@ ax_x.axhline(
 ax_x.legend(loc="upper right")
 
 # Setup acceleration graph
-
 ax_accel.set_title("Pendulum Acceleration (m/s^2)")
 ax_accel.set_xlabel("Time (s)")
 ax_accel.set_ylabel("Acceleration (m/s^2)")
