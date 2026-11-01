@@ -50,7 +50,7 @@ energy_history = np.empty(num_steps)
 
 def update_mode(mode, x, theta, omega, energy):
     if mode == "reset":
-        if abs(x) < 0.01 and abs(energy + G * (L/2)) < 0.0005:
+        if abs(x) < 0.01 and abs(energy + G * (L/2)) < 0.001:
             mode = "swingup"
         else:
             mode = "reset"
@@ -70,9 +70,9 @@ def wrap_angle(angle):
 def reset(x, v, theta, omega, energy):
     a_centre = 5*(-x) - 3*v
     energy_error = -G*L/2 - energy
-    a_calmdown = -70 * (energy_error) * omega * cos(theta)
+    a_calmdown = -100 * (energy_error) * omega * cos(theta)
 
-    a = a_centre + a_calmdown
+    a = np.clip(a_centre + a_calmdown, -max_accel, max_accel)
     return a
 
 def swingup(x, v, theta, omega, energy):
@@ -80,8 +80,8 @@ def swingup(x, v, theta, omega, energy):
         a = 0.01
     else:
         energy_error = G * (L/2) - energy;
-        a_swing = -0.75 * energy_error * omega * cos(theta)
-        a_centre = -5*x - 0.5*v
+        a_swing = -0.77 * energy_error * omega * cos(theta)
+        a_centre = -5*x - 0.45*v
         a = np.clip(a_swing + a_centre, -max_accel, max_accel)
     return a
 
@@ -207,20 +207,20 @@ print("Simulation complete.")
 
 print("Starting animation...")
 
-fig = plt.figure(figsize=(12, 7))
+fig = plt.figure(figsize=(12, 10))
 gs = GridSpec(
-    4, 2,
+    6, 2,
     figure=fig,
-    width_ratios=[1, 1],
-    height_ratios=[1, 1, 1, 1],
-    hspace=0.6,
-    wspace=0.3
+    width_ratios=[2, 1],
+    height_ratios=[1, 1, 1, 1, 1, 1],
+    hspace=1.2,
+    wspace=0.5
 )
-ax_anim = fig.add_subplot(gs[:, 0])
-ax_theta = fig.add_subplot(gs[0, 1])
-ax_x = fig.add_subplot(gs[1, 1])
-ax_accel = fig.add_subplot(gs[2, 1])
-ax_energy = fig.add_subplot(gs[3, 1])
+ax_anim = fig.add_subplot(gs[0:4, 0])
+ax_theta = fig.add_subplot(gs[0:2, 1])
+ax_x = fig.add_subplot(gs[2:4, 1])
+ax_accel = fig.add_subplot(gs[4:6, 0])
+ax_energy = fig.add_subplot(gs[4:6, 1])
 
 fig.suptitle("Cart-pole Simulation", fontsize=16, fontweight="bold")
 
