@@ -26,10 +26,10 @@ t = np.arange(0, num_steps + 1) * dt
 Kp_theta = 150
 Kd_theta = 20
 Kp_x = -0.35
-Kd_x = -0.18
+Kd_x = -0.3
 
 # Initial conditions
-theta = np.deg2rad(20)
+theta = np.deg2rad(170)
 omega = 0
 x = np.random.rand()*0.4 - 0.2
 v = 0
@@ -61,7 +61,7 @@ def update_mode(mode, x, theta, omega, energy):
 
     elif mode == "swingup":
         theta_error_from_top = np.pi - abs(theta)
-        if theta_error_from_top < np.deg2rad(25) and abs(x) < 0.4:
+        if theta_error_from_top < np.deg2rad(25) and abs(x) < 0.45:
             mode = "balance"
         else:
             mode = "swingup"
@@ -74,7 +74,7 @@ def wrap_angle(angle):
 def reset(x, v, theta, omega, energy):
     a_centre = 5*(-x) - 3*v
     energy_error = -G*L/2 - energy
-    a_calmdown = -100 * (energy_error) * omega * cos(theta)
+    a_calmdown = -np.sign(energy_error) * omega * cos(theta)
 
     a = np.clip(a_centre + a_calmdown, -max_accel, max_accel)
     return a
