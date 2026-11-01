@@ -29,9 +29,9 @@ Kp_x = -0.35
 Kd_x = -0.3
 
 # Initial conditions
-theta = np.deg2rad(170)
+theta = np.random.rand() * 2*np.pi
 omega = 0
-x = np.random.rand()*0.4 - 0.2
+x = np.random.rand() * 0.4 - 0.2
 v = 0
 a = 0
 energy = 0
@@ -54,7 +54,7 @@ settle_time = 0
 
 def update_mode(mode, x, theta, omega, energy):
     if mode == "reset":
-        if abs(x) < 0.01 and abs(energy + G * (L/2)) < 0.001:
+        if abs(x) < 0.01 and abs(energy + G * (L/2)) < 0.0006:
             mode = "swingup"
         else:
             mode = "reset"
@@ -81,10 +81,10 @@ def reset(x, v, theta, omega, energy):
 
 def swingup(x, v, theta, omega, energy):
     if abs(theta) <= 1e-3 and abs(omega) <= 1e-3:
-        a = 0.01
+        a = 0.1
     else:
         energy_error = G * (L/2) - energy;
-        a_swing = -0.77 * energy_error * omega * cos(theta)
+        a_swing = -np.sign(energy_error) * omega * cos(theta)
         a_centre = -5*x - 0.45*v
         a = np.clip(a_swing + a_centre, -max_accel, max_accel)
     return a
