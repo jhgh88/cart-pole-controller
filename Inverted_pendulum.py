@@ -11,6 +11,8 @@ import matplotlib.animation as animation
 L = 0.3 # Pendulum length [m]
 G = 9.81 # Gravity [m/s^2]
 dt = 0.01 # Timestep [s]
+animation_interval = 30 # Animation interval [ms]
+frame_skip = int((1.7 * animation_interval) / (dt * 1000)) # 1.7 is hard coded to make the animation run at a reasonable speed
 B = 0.1 # Damping coefficient
 max_accel = 10 # Maximum acceleration [m/s^2]
 m = 1.0 # Length of track [m]
@@ -29,7 +31,7 @@ Kd_x = -0.18
 # Initial conditions
 theta = np.deg2rad(20)
 omega = 0
-x = np.random.rand()*0.1 - 0.05
+x = np.random.rand()*0.6 - 0.3
 v = 0
 a = 0
 energy = 0
@@ -129,6 +131,8 @@ def init_anim():
     return (cart, rod, info_text, status_text, theta_line, x_line, accel_line, energy_line)
 
 def animate(i):
+    i = i * frame_skip
+
     x = x_history[i]
     theta = theta_history[i]
 
@@ -337,7 +341,7 @@ ax_accel.set_xlabel("Time (s)")
 ax_accel.set_ylabel("Acceleration (m/s^2)")
 ax_accel.set_xlim(0, t_stop)
 ax_accel.set_ylim(-max_accel, max_accel)
-ax_x.grid(True)
+ax_accel.grid(True)
 
 accel_line, = ax_accel.plot(
     [], [],
@@ -374,9 +378,9 @@ ax_energy.legend(loc="upper right")
 ani = animation.FuncAnimation(
     fig, 
     animate, 
-    frames=len(t)-1, 
+    frames=(len(t)-1)//frame_skip, 
     init_func=init_anim,
-    interval=dt*1000, 
+    interval=animation_interval, 
     blit=True
 )
 plt.show()
