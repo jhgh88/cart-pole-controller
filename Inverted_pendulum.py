@@ -18,7 +18,7 @@ max_accel = 10 # Maximum acceleration [m/s^2]
 m = 1.0 # Length of track [m]
 n = 0.1 # Buffer [m]
 
-t_stop = 20.0 # Total simulation duration [s]
+t_stop = 10.0 # Total simulation duration [s]
 num_steps = int(t_stop / dt)
 t = np.arange(0, num_steps + 1) * dt
 
@@ -29,13 +29,11 @@ Kp_x = -0.35
 Kd_x = -0.3
 
 # Initial conditions
-theta = np.random.rand() * 2*np.pi
-omega = 0
-x = np.random.rand() * 0.4 - 0.2
+x = np.random.rand() * 0.6 - 0.3
 v = 0
 a = 0
-energy = 0
-gpe = 0
+theta = np.random.rand() * 2*np.pi
+omega = 0
 mode = "reset"
 
 # Target position
@@ -43,12 +41,7 @@ target_theta = np.deg2rad(180)
 target_x = 0
 target_E = G * (L/2)
 
-states = np.empty((num_steps, 6)) # 6 columns: x, v, theta, omega, a
-mode_history = np.empty(num_steps, dtype=object)
-settled_history = np.zeros(num_steps, dtype=bool)
-energy_history = np.empty(num_steps)
 settle_condition = int(1 / dt) # 1 second of stability required to be considered settled
-settle_time = 0
 
 #----------------------- Functions --------------------------
 
@@ -142,7 +135,7 @@ def animate(i):
 
     # Update status text.
     info_text.set_text(
-        f"Time: {t[i]:.1f} s\n"
+        f"Time: {t[i]:.2f} s\n"
         f"Mode: {mode_history[i]}\n"
         f"Cart position: {x:.3f} m\n"
         f"Angle: {np.rad2deg(theta):.1f}°\n"
@@ -177,54 +170,69 @@ def animate(i):
 
     return (cart, rod, info_text, status_text, theta_line, x_line, accel_line, energy_line)
 
+def run_simulation(x, v, theta, omega, a, mode):
+    print("Starting simulation...")
+
+    history = np.empty((num_steps, 6)) # 6 columns: x, v, theta, omega, a, energy
+    mode_history = np.empty(num_steps, dtype=object)
+    settled_history = np.empty(num_steps, dtype=bool)
+    success = False
+
+    for i in range(num_steps):
+
+        k_energy = (1/6) * L**2 * omega**2
+        gp_energy = G * -(L/2) * cos(theta)
+        energy = k_energy + gp_energy
+
+        mode = update_mode(mode, x, theta, omega, energy)
+
+        if mode == "reset":
+            a = reset(x, v, theta, omega, energy)
+        elif mode == "swingup":
+            a = swingup(x, v, theta, omega, energy)
+        elif mode == "balance":
+            a = balance(x, v, theta, omega, target_x, target_theta)
+
+        x, v, a, theta, omega = update_physics(x, v, a, theta, omega)
+
+        history[i] = [x, v, theta, omega, a, energy]
+        mode_history[i] = mode
+
+    x_history = history[:, 0]
+    theta_history = history[:, 2]
+
+    theta_error_history = wrap_angle(np.pi - theta_history)
+    theta_error_history_deg = np.rad2deg(theta_error_history)
+
+    for i in range(settle_condition, num_steps):
+        if (abs(x_history[i-settle_condition:i]) < 0.03).all() and (abs(theta_error_history_deg[i-settle_condition:i]) < 3).all():
+            settled_history[i:] = True
+            settle_time = t[i]
+            success = True
+            break        
+        else:
+            settled_history[i] = False
+
+    print("Simulation complete.")
+    return success, settle_time, history, mode_history, settled_history
+
 #----------------------- Main code --------------------------
 
-print("Starting simulation...")
+success, settle_time, history, mode_history, settled_history = run_simulation(x, v, a, theta, omega, mode)
+print(f"Success: {success}, Settling time: {settle_time:.2f} s")
 
-for i in range(num_steps):
+print("Starting animation...")
 
-    k_energy = (1/6) * L**2 * omega**2
-    gp_energy = G * -(L/2) * cos(theta)
-    energy = k_energy + gp_energy
-
-    mode = update_mode(mode, x, theta, omega, energy)
-
-    if mode == "reset":
-        a = reset(x, v, theta, omega, energy)
-    elif mode == "swingup":
-        a = swingup(x, v, theta, omega, energy)
-    elif mode == "balance":
-        a = balance(x, v, theta, omega, target_x, target_theta)
-
-    x, v, a, theta, omega = update_physics(x, v, a, theta, omega)
-
-    states[i] = [x, v, theta, omega, a, energy]
-    mode_history[i] = mode
-    energy_history[i] = energy
-
-x_history = states[:, 0]
-v_history = states[:, 1]
-theta_history = states[:, 2]
-omega_history = states[:, 3]
-a_history = states[:, 4]
-energy_history = states[:, 5]
+x_history = history[:, 0]
+v_history = history[:, 1]
+theta_history = history[:, 2]
+omega_history = history[:, 3]
+a_history = history[:, 4]
+energy_history = history[:, 5]
 
 theta_history_deg = np.rad2deg(theta_history)
 theta_error_history = wrap_angle(np.pi - theta_history)
 theta_error_history_deg = np.rad2deg(theta_error_history)
-
-for i in range(settle_condition, num_steps):
-    if (abs(x_history[i-settle_condition:i]) < 0.03).all() and (abs(theta_error_history_deg[i-settle_condition:i]) < 3).all():
-        settled_history[i:] = True
-        settle_time = t[i]
-        break        
-    else:
-        settled_history[i] = False
-
-print("Simulation complete.")
-print(f"Settling time: {settle_time:.2f} s")
-
-print("Starting animation...")
 
 fig = plt.figure(figsize=(12, 10))
 gs = GridSpec(
