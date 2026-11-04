@@ -1,5 +1,5 @@
 import numpy as np
-from cartpole.config import num_steps, settle_condition, dt, target_theta, target_x, t
+from cartpole.config import num_steps, settle_condition, target_theta, target_x, t
 from cartpole.utils import wrap_angle
 from cartpole.controllers import update_mode, reset, swingup, balance
 from cartpole.dynamics import update_physics, pendulum_energy

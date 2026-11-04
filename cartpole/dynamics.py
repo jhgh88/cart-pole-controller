@@ -1,14 +1,14 @@
 import numpy as np
 from numpy import cos, sin
 from cartpole.utils import wrap_angle
-from cartpole.config import L, G, dt, B, m
+from cartpole.config import L, G, dt, B, track_length
 
 def update_physics(x, v, a, theta, omega):
     v = v + a * dt
     x = x + v * dt
 
-    if x <= -m/2 or x >= m/2:
-        x = np.clip(x, -m/2, m/2)
+    if x <= -track_length/2 or x >= track_length/2:
+        x = np.clip(x, -track_length/2, track_length/2)
         a = -v / dt
         v = 0
 

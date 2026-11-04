@@ -5,7 +5,7 @@ import matplotlib.animation as animation
 import numpy as np
 from numpy import cos, sin
 
-from cartpole.config import G, L, dt, m, n, t_stop, max_accel, t
+from cartpole.config import G, L, dt, track_length, track_buffer, t_stop, max_accel, t
 from cartpole.utils import wrap_angle
 
 animation_interval = 30 # Animation interval [ms]
@@ -106,8 +106,8 @@ def run_animation(history, mode_history, settled_history):
 
     fig.suptitle("Cart-pole Simulation", fontsize=16, fontweight="bold")
 
-    ax_anim.set_xlim(-(m / 2 + n), m / 2 + n)
-    ax_anim.set_ylim(-L - n, L + n)
+    ax_anim.set_xlim(-(track_length / 2 + track_buffer), track_length / 2 + track_buffer)
+    ax_anim.set_ylim(-L - track_buffer, L + track_buffer)
     ax_anim.set_aspect("equal")
     ax_anim.set_title("Cart-Pole Animation")
     ax_anim.set_xlabel("Cart Position (m)")
@@ -115,13 +115,13 @@ def run_animation(history, mode_history, settled_history):
     ax_anim.grid(True)
 
     track = ax_anim.plot(
-        [-m/2, m/2], 
+        [-track_length/2, track_length/2], 
         [0, 0], 
         color="black", 
         lw=2, marker="|", markersize=10
     )
-    ax_anim.axvline(-m / 2, linestyle="--", alpha=0.5)
-    ax_anim.axvline(m / 2, linestyle="--", alpha=0.5)
+    ax_anim.axvline(-track_length / 2, linestyle="--", alpha=0.5)
+    ax_anim.axvline(track_length / 2, linestyle="--", alpha=0.5)
 
     cart = Rectangle(
         (x_history[0] - 0.04, -0.02), 
@@ -178,7 +178,7 @@ def run_animation(history, mode_history, settled_history):
     ax_x.set_xlabel("Time (s)")
     ax_x.set_ylabel("Position (m)")
     ax_x.set_xlim(0, t_stop)
-    ax_x.set_ylim(-m/2 - 0.05, m/2 + 0.05)
+    ax_x.set_ylim(-track_length/2 - 0.05, track_length/2 + 0.05)
     ax_x.grid(True)
 
     x_line, = ax_x.plot(
