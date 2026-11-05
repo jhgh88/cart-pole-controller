@@ -80,13 +80,10 @@ def run_animation(history, mode_history, settled_history):
     print("Starting animation...")
 
     x_history = history[:, 0]
-    v_history = history[:, 1]
     theta_history = history[:, 2]
-    omega_history = history[:, 3]
     a_history = history[:, 4]
     energy_history = history[:, 5]
 
-    theta_history_deg = np.rad2deg(theta_history)
     theta_error_history = wrap_angle(np.pi - theta_history)
     theta_error_history_deg = np.rad2deg(theta_error_history)
 

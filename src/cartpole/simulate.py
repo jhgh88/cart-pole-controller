@@ -5,11 +5,11 @@ from cartpole.controllers import update_mode, reset, swingup, balance
 from cartpole.dynamics import update_physics, pendulum_energy
 
 def run_simulation(x, v, a, theta, omega, mode):
-    print("Starting simulation...")
 
     history = np.empty((num_steps, 6)) # 6 columns: x, v, theta, omega, a, energy
     mode_history = np.empty(num_steps, dtype=object)
     settled_history = np.empty(num_steps, dtype=bool)
+    settle_time = -1
     success = False
 
     for i in range(num_steps):
@@ -44,5 +44,4 @@ def run_simulation(x, v, a, theta, omega, mode):
         else:
             settled_history[i] = False
 
-    print("Simulation complete.")
     return success, settle_time, history, mode_history, settled_history

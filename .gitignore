@@ -7,3 +7,4 @@ inverted_pendulum_noise.mlx
 .venv/
 __pycache__/
 *pyc
+results/*.csv
