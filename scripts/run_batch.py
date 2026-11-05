@@ -16,7 +16,7 @@ omega = 0
 #----------------------- Main code --------------------------
 
 failed = []
-num_of_sims = 1000
+num_of_sims = 5000
 sim_data = np.empty(num_of_sims, dtype=[('x', float), ('theta', float), ('success', bool), ('settle_time', float)])
 
 for i in range(num_of_sims):
