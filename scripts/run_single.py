@@ -6,7 +6,7 @@ from cartpole.animate import run_animation
 x = np.random.rand() * 0.6 - 0.3
 v = 0
 a = 0
-theta = np.random.rand() * 2*np.pi
+theta = np.random.rand() * 2*np.pi - np.pi
 omega = 0
 mode = "reset"
 
@@ -20,6 +20,6 @@ success, settle_time, history, mode_history, settled_history = run_simulation(
     omega=omega, 
     mode=mode
 )
-print(f"Success: {success}, Settling time: {settle_time:.2f} s")
+print(f"x: {x:.3f}, theta: {np.rad2deg(theta):.1f}, Success: {success}, Settling time: {settle_time:.2f} s")
 
 run_animation(history, mode_history, settled_history)

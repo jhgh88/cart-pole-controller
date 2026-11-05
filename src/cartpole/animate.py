@@ -22,6 +22,7 @@ def init_anim(cart, rod, info_text, status_text, theta_line, x_line, accel_line,
 
     info_text.set_text("")
     status_text.set_text("")
+    status_text.set_color("black")
 
     return (cart, rod, info_text, status_text, theta_line, x_line, accel_line, energy_line)
 
