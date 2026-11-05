@@ -9,10 +9,8 @@ results_dir = Path(__file__).resolve().parent.parent / "results" # Directory for
 results_dir.mkdir(exist_ok=True)
 
 # Initial conditions
-x = np.random.rand() * 0.6 - 0.3
 v = 0
 a = 0
-theta = np.random.rand() * 2*np.pi - np.pi
 omega = 0
 mode = "reset"
 
@@ -26,7 +24,6 @@ for i in range(num_of_sims):
 
     x = np.random.rand() * 0.6 - 0.3
     theta = np.random.rand() * 2*np.pi  
-    mode = "reset"
 
     success, settle_time, history, mode_history, settled_history = run_simulation(
         x=x,
