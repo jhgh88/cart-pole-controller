@@ -3,3 +3,7 @@ basic_animation.mlx
 swinging_pendulum.mlx
 inverted_pendulum_noise.mlx
 *.txt
+*.egg-info/
+.venv/
+__pycache__/
+*pyc
