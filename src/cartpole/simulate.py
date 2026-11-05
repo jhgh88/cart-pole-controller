@@ -4,7 +4,7 @@ from cartpole.utils import wrap_angle
 from cartpole.controllers import update_mode, reset, swingup, balance
 from cartpole.dynamics import update_physics, pendulum_energy
 
-def run_simulation(x, v, theta, omega, a, mode):
+def run_simulation(x, v, a, theta, omega, mode):
     print("Starting simulation...")
 
     history = np.empty((num_steps, 6)) # 6 columns: x, v, theta, omega, a, energy
