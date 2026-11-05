@@ -10,6 +10,7 @@ def run_simulation(x, v, a, theta, omega, mode):
     history = np.empty((num_steps, 6)) # 6 columns: x, v, theta, omega, a, energy
     mode_history = np.empty(num_steps, dtype=object)
     settled_history = np.empty(num_steps, dtype=bool)
+    settle_time = -1
     success = False
 
     for i in range(num_steps):
