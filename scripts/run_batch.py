@@ -22,7 +22,7 @@ sim_data = np.empty(num_of_sims, dtype=[('x', float), ('theta', float), ('succes
 for i in range(num_of_sims):
 
     x = np.random.rand() * 0.6 - 0.3
-    theta = np.random.rand() * 2*np.pi
+    theta = np.random.rand() * 2*np.pi - np.pi
     mode = "reset"
 
     success, settle_time, history, mode_history, settled_history = run_simulation(
