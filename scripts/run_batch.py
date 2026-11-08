@@ -16,7 +16,7 @@ omega = 0
 #----------------------- Main code --------------------------
 
 failed = []
-num_of_sims = 5000
+num_of_sims = 10000
 sim_data = np.empty(num_of_sims, dtype=[('x', float), ('theta', float), ('success', bool), ('settle_time', float)])
 last_reset_states = np.empty(num_of_sims, dtype=[('success', bool), ('x', float), ('v', float), ('theta', float), ('omega', float), ('energy', float)])
 
@@ -58,7 +58,7 @@ for i in range(num_of_sims):
 
 success_rate = sum(1 for run in sim_data if run['success']==True) / len(sim_data)
 print(f"Succeeded: {len(sim_data) - len(failed)}, Failed: {len(failed)}")
-print(f"Success rate: {success_rate*100:.1f}%")
+print(f"Success rate: {success_rate*100:.2f}%")
 
 sim_dataframe = pd.DataFrame(sim_data)
 sim_dataframe.to_csv(results_dir/"batch_results.csv", index=False) # Export data to results/batch_results.csv
