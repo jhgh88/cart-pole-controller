@@ -16,7 +16,7 @@ omega = 0
 #----------------------- Main code --------------------------
 
 failed = []
-num_of_sims = 10000
+num_of_sims = 100000
 sim_data = np.empty(num_of_sims, dtype=[('x', float), ('theta', float), ('success', bool), ('settle_time', float)])
 last_reset_states = np.empty(num_of_sims, dtype=[('success', bool), ('x', float), ('v', float), ('theta', float), ('omega', float), ('energy', float)])
 
