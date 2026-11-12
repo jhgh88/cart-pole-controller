@@ -8,3 +8,4 @@ inverted_pendulum_noise.mlx
 __pycache__/
 *pyc
 results/*.csv
+.ipynb_checkpoints/

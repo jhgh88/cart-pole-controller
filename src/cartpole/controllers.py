@@ -5,7 +5,7 @@ from cartpole.utils import wrap_angle
 
 def update_mode(mode, x, theta, omega, energy):
     if mode == "reset":
-        if abs(x) < 0.01 and abs(energy + G * (L/2)) < 0.0006:
+        if abs(x) < 0.01 and abs(energy + G * (L/2)) < 0.0005:
             mode = "swingup"
         else:
             mode = "reset"
@@ -22,7 +22,7 @@ def update_mode(mode, x, theta, omega, energy):
 def reset(x, v, theta, omega, energy):
     a_centre = 5*(-x) - 3*v
     energy_error = -G*L/2 - energy
-    a_calmdown = -np.sign(energy_error) * omega * cos(theta)
+    a_calmdown = -1.05*np.sign(energy_error) * omega * cos(theta)
 
     a = np.clip(a_centre + a_calmdown, -max_accel, max_accel)
     return a
@@ -32,7 +32,7 @@ def swingup(x, v, theta, omega, energy):
         a = 0.1
     else:
         energy_error = G * (L/2) - energy;
-        a_swing = -np.sign(energy_error) * omega * cos(theta)
+        a_swing = -2*np.sign(energy_error) * omega * cos(theta)
         a_centre = -5*x - 0.45*v
         a = np.clip(a_swing + a_centre, -max_accel, max_accel)
     return a
