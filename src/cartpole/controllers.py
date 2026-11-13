@@ -33,7 +33,7 @@ def swingup(x, v, theta, omega, energy):
     else:
         energy_error = G * (L/2) - energy;
         a_swing = -2*np.sign(energy_error) * omega * cos(theta)
-        a_centre = -5*x - 0.45*v
+        a_centre = -10*x - 0.9*v
         a = np.clip(a_swing + a_centre, -max_accel, max_accel)
     return a
 

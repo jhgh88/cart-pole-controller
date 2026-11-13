@@ -22,7 +22,7 @@ last_reset_states = np.empty(num_of_sims, dtype=[('success', bool), ('x', float)
 
 for i in range(num_of_sims):
 
-    x = np.random.rand() * 0.6 - 0.3
+    x = np.random.rand() * 0.8 - 0.4
     theta = np.random.rand() * 2*np.pi - np.pi
     mode = "reset"
     last_reset_index = 0
